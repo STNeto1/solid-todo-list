@@ -1,8 +1,14 @@
 import { Show } from 'solid-js'
 import { A, FormError } from 'solid-start'
 import { createServerAction$ } from 'solid-start/server'
+import { z } from 'zod'
 import { Input } from '~/components/Input'
 import { Label } from '~/components/Label'
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6)
+})
 
 export default function LoginPage() {
   const [loggingIn, { Form }] = createServerAction$(async (form: FormData) => {
@@ -10,18 +16,20 @@ export default function LoginPage() {
 
     const email = form.get('email')
     const password = form.get('password')
-    if (typeof email !== 'string' || typeof password !== 'string') {
-      throw new FormError(`Form not submitted correctly.`)
-    }
 
     const fields = { email, password }
-    const fieldErrors = {
-      email: email !== 'mail@mail.com' ? 'Email is invalid' : null,
-      password: password !== '102030' ? 'Password is invalid' : null
-    }
-    if (Object.values(fieldErrors).some(Boolean)) {
+    const schemaResult = loginSchema.safeParse(fields)
+
+    if (!schemaResult.success) {
+      const fieldErrors = {
+        email: schemaResult.error.formErrors.fieldErrors.email?.join(', '),
+        password: schemaResult.error.formErrors.fieldErrors.password?.join(', ')
+      }
+
       throw new FormError('Fields invalid', { fieldErrors, fields })
     }
+
+    console.log(schemaResult.data)
 
     // const user = await login({ username, password });
     // if (!user) {
